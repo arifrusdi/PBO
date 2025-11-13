@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanans Book - Rumah Baca Anda</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel-stylesheet>
+    <style>
+        /* Menggunakan font Inter secara default */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Mengatur latar belakang hangat, mendekati cream */
+            background-color: #fafaf9; /* stone-50 */
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Wrapper utama dengan latar belakang stone-50 -->
+    <div id="app" class="min-h-screen flex flex-col bg-stone-50">
+        <!-- Konten akan dimuat di sini oleh JavaScript -->
+    </div>
+
+    <script>
+        // =======================================================
+        // | BAGIAN JAVASCRIPT: LOGIKA APLIKASI DAN STATE MANAGER |
+        // =======================================================
+
+        // State global untuk aplikasi
+        let state = {
+            currentPage: 'home',
+            selectedGenre: 'All', // <--- BARU: State untuk menyimpan genre yang dipilih
+            // Contoh data buku (mock data)
+            books: [
+                { id: 1, title: "Seni Berdamai dengan Ekspektasi", author: "Fajar Nugraha", genre: "Pengembangan Diri", price: 95000, cover: "https://placehold.co/150x225/57534e/ffffff?text=Berdamai+1" },
+                { id: 2, title: "Algoritma Hening", author: "Ayu Puspita", genre: "Teknologi", price: 155000, cover: "https://placehold.co/150x225/4b5563/ffffff?text=Algoritma+2" },
+                { id: 3, title: "Seribu Bintang di Pelabuhan", author: "Dewi Lestari", genre: "Fiksi", price: 110000, cover: "https://placehold.co/150x225/78350f/ffffff?text=Bintang+3" },
+                { id: 4, title: "Jelajah Rasa Kopi Indonesia", author: "Barista Joni", genre: "Kuliner", price: 80000, cover: "https://placehold.co/150x225/a8a29e/ffffff?text=Kopi+4" },
+                { id: 5, title: "Geografi Dunia Maya", author: "Prof. S. Hadi", genre: "Sains", price: 130000, cover: "https://placehold.co/150x225/374151/ffffff?text=Geo+5" },
+                { id: 6, title: "Misteri Rumah Tua di Pojok Kota", author: "Risa Saraswati", genre: "Fiksi", price: 89000, cover: "https://placehold.co/150x225/60a5fa/ffffff?text=Misteri+6" },
+                { id: 7, title: "Panduan Finansial Milenial", author: "Sonia Wijaya", genre: "Bisnis", price: 105000, cover: "https://placehold.co/150x225/fbbf24/ffffff?text=Finansial+7" },
+                { id: 8, title: "Sejarah Peradaban Kuno Nusantara", author: "Dr. Bimo", genre: "Sejarah", price: 140000, cover: "https://placehold.co/150x225/8b5cf6/ffffff?text=Nusantara+8" },
+            ],
+            searchTerm: '',
+        };
+
+        const appElement = document.getElementById('app');
+
+        // Fungsi untuk mengubah halaman
+        function changePage(page) {
+            state.currentPage = page;
+            renderApp();
+            window.scrollTo(0, 0); // Gulir ke atas saat berpindah halaman
+        }
+
+        // Fungsi untuk memperbarui pencarian dan merender ulang
+        function updateSearch(term) {
+            state.searchTerm = term;
+            renderApp();
+        }
+
+        // Fungsi BARU: untuk mengatur filter genre dan merender ulang
+        function setGenre(genre) {
+            state.selectedGenre = genre;
+            renderApp();
+        }
+
+
+        // --- Render Navigasi (Header) ---
+        function renderHeader() {
+            const navItems = [
+                { name: 'Beranda', page: 'home' },
+                { name: 'Katalog Buku', page: 'catalog' },
+                { name: 'Tentang Kami', page: 'about' },
+            ];
+
+            return `
+                <header class="sticky top-0 z-10 bg-white shadow-md">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex justify-between items-center h-16">
+                            <!-- Logo Toko -->
+                            <a href="#" onclick="changePage('home')" class="text-2xl font-bold text-neutral-800 hover:text-neutral-900 transition duration-300">
+                                Hanans Book
+                            </a>
+
+                            <!-- Navigasi Desktop -->
+                            <nav class="hidden md:flex space-x-4">
+                                ${navItems.map(item => `
+                                    <button 
+                                        onclick="changePage('${item.page}')"
+                                        class="px-3 py-2 rounded-lg text-sm font-medium transition duration-300
+                                            ${state.currentPage === item.page 
+                                                ? 'bg-neutral-800 text-white shadow-md' 
+                                                : 'text-gray-600 hover:bg-stone-100 hover:text-neutral-800'}">
+                                        ${item.name}
+                                    </button>
+                                `).join('')}
+                            </nav>
+
+                            <!-- Hamburger/Toggle Button (Mobile) -->
+                            <button id="menu-toggle" class="md:hidden p-2 rounded-md text-gray-700 hover:bg-gray-100">
+                                <!-- Icon SVG Sederhana -->
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Navigasi Mobile (Toggled) -->
+                    <div id="mobile-menu" class="hidden md:hidden pb-2">
+                        ${navItems.map(item => `
+                            <button 
+                                onclick="changePage('${item.page}'); document.getElementById('mobile-menu').classList.add('hidden');"
+                                class="block w-full text-left px-3 py-2 text-base font-medium transition duration-300
+                                    ${state.currentPage === item.page 
+                                        ? 'bg-stone-200 text-neutral-800' 
+                                        : 'text-gray-600 hover:bg-stone-100 hover:text-neutral-800'}">
+                                ${item.name}
+                            </button>
+                        `).join('')}
+                    </div>
+                </header>
+            `;
+        }
+
+        // --- Render Halaman Beranda (Home) ---
+        function renderHome() {
+            return `
+                <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                    <!-- Hero Section -->
+                    <div class="bg-white rounded-xl shadow-2xl p-8 md:p-12 mb-12 text-center border-t-4 border-neutral-800">
+                        <h1 class="text-4xl md:text-6xl font-extrabold text-gray-900 mb-4">
+                            Selamat Datang di Hanans Book
+                        </h1>
+                        <p class="text-lg md:text-xl text-gray-600 mb-8">
+                            Temukan dunia pengetahuan dan imajinasi Anda. Setiap halaman adalah petualangan baru.
+                        </p>
+                        <button onclick="changePage('catalog')" class="bg-neutral-800 hover:bg-neutral-900 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105">
+                            Telusuri Katalog Kami
+                        </button>
+                    </div>
+
+                    <!-- Featured Books Section -->
+                    <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-neutral-800 pb-2">
+                        Buku Pilihan Minggu Ini
+                    </h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        ${state.books.slice(0, 4).map(book => `
+                            <div class="bg-white rounded-lg shadow-md hover:shadow-xl transition duration-300 p-4 text-center">
+                                <img src="${book.cover}" alt="Sampul Buku ${book.title}" class="w-full h-auto object-cover rounded-md mb-3 shadow-md" onerror="this.onerror=null; this.src='https://placehold.co/150x225/4a5568/ffffff?text=No+Cover';">
+                                <h3 class="font-semibold text-lg text-gray-900 truncate">${book.title}</h3>
+                                <p class="text-sm text-gray-500">${book.author}</p>
+                                <p class="text-stone-700 font-bold mt-2">Rp ${book.price.toLocaleString('id-ID')}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- Call to Action Footer -->
+                    <div class="mt-12 p-8 bg-stone-100 rounded-xl shadow-inner text-center">
+                        <p class="text-xl font-medium text-neutral-800">
+                            Punya pertanyaan? Kunjungi halaman kontak kami!
+                        </p>
+                        <button onclick="changePage('about')" class="mt-4 text-neutral-800 hover:text-neutral-900 font-semibold transition duration-300">
+                            Hubungi Kami &rarr;
+                        </button>
+                    </div>
+                </main>
+            `;
+        }
+
+        // --- Render Halaman Katalog Buku (Catalog) ---
+        function renderCatalog() {
+            // Dapatkan daftar genre unik (termasuk "All")
+            const uniqueGenres = ['All', ...new Set(state.books.map(book => book.genre))];
+
+            // Filter buku berdasarkan searchTerm DAN selectedGenre
+            const filteredBooks = state.books.filter(book => {
+                const matchesSearch = book.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
+                                      book.author.toLowerCase().includes(state.searchTerm.toLowerCase());
+
+                const matchesGenre = state.selectedGenre === 'All' || book.genre === state.selectedGenre;
+
+                return matchesSearch && matchesGenre;
+            });
+
+            return `
+                <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                    <h1 class="text-4xl font-bold text-gray-900 mb-6">Katalog Lengkap Kami</h1>
+                    
+                    <!-- Genre Filters (BARU) -->
+                    <div class="mb-8 p-4 bg-white rounded-xl shadow-md">
+                        <h2 class="text-xl font-bold mb-3 text-neutral-800">Filter Genre</h2>
+                        <div class="flex flex-wrap gap-3">
+                            ${uniqueGenres.map(genre => `
+                                <button 
+                                    onclick="setGenre('${genre}')"
+                                    class="px-4 py-2 text-sm font-medium rounded-full transition duration-300 shadow-sm
+                                        ${state.selectedGenre === genre 
+                                            ? 'bg-neutral-800 text-white ring-2 ring-offset-2 ring-neutral-800' // Gaya tombol aktif
+                                            : 'bg-stone-100 text-gray-700 hover:bg-stone-200'}">
+                                    ${genre}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="mb-8 p-4 bg-white rounded-xl shadow-md flex items-center">
+                        <input 
+                            type="text" 
+                            id="search-input"
+                            placeholder="Cari berdasarkan judul atau penulis..."
+                            value="${state.searchTerm}"
+                            oninput="updateSearch(this.value)"
+                            class="flex-grow p-3 border-2 border-gray-200 rounded-l-xl focus:outline-none focus:border-neutral-800 transition duration-300"
+                        >
+                        <button onclick="updateSearch(document.getElementById('search-input').value)" class="bg-neutral-800 hover:bg-neutral-900 text-white font-semibold p-3 rounded-r-xl shadow-md flex items-center">
+                            <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            Cari
+                        </button>
+                    </div>
+
+                    <!-- Book Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        ${filteredBooks.length > 0 ? filteredBooks.map(book => `
+                            <div class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition duration-300 overflow-hidden cursor-pointer">
+                                <img src="${book.cover}" alt="Sampul Buku ${book.title}" class="w-full h-auto object-cover aspect-[2/3] rounded-t-xl" onerror="this.onerror=null; this.src='https://placehold.co/150x225/4a5568/ffffff?text=No+Cover';">
+                                <div class="p-4">
+                                    <h3 class="font-bold text-gray-900 mb-1 leading-tight">${book.title}</h3>
+                                    <p class="text-sm text-gray-500 mb-2">${book.author}</p>
+                                    <!-- Genre tag dengan warna cream/stone yang lembut -->
+                                    <span class="inline-block bg-stone-200 text-stone-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                                        ${book.genre}
+                                    </span>
+                                    <p class="text-lg text-stone-700 font-extrabold mt-3">Rp ${book.price.toLocaleString('id-ID')}</p>
+                                    <button class="mt-3 w-full bg-neutral-800 hover:bg-neutral-900 text-white text-sm py-2 rounded-lg transition duration-300">
+                                        Tambah ke Keranjang
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="col-span-full text-center py-10 bg-white rounded-lg shadow-md">
+                                <p class="text-xl text-gray-600">Maaf, buku tidak ditemukan berdasarkan filter saat ini.</p>
+                                <p class="text-gray-500 mt-2">Coba hapus filter genre atau gunakan kata kunci pencarian yang berbeda.</p>
+                            </div>
+                        `}
+                    </div>
+                </main>
+            `;
+        }
+        
+        // --- Render Halaman Tentang Kami (About) ---
+        function renderAbout() {
+            return `
+                <main class="flex-grow max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+                    <div class="grid md:grid-cols-2 gap-10">
+                        <!-- Visi dan Misi -->
+                        <div class="bg-white rounded-xl shadow-2xl p-8 border-l-4 border-neutral-800">
+                            <h1 class="text-4xl font-bold text-gray-900 mb-6">Tentang Hanans Book</h1>
+                            
+                            <h2 class="text-2xl font-semibold text-neutral-800 mb-3">Filosofi Kami</h2>
+                            <p class="text-gray-700 mb-6 leading-relaxed">
+                                Hanans Book didirikan pada tahun 2015 dengan visi untuk menjadi jembatan antara pembaca dan penulis. Kami percaya bahwa buku memiliki kekuatan untuk mengubah hidup, dan kami berdedikasi untuk menyediakan koleksi yang dikurasi dengan baik, mulai dari sastra klasik hingga literatur sains modern.
+                            </p>
+
+                            <h2 class="text-2xl font-semibold text-neutral-800 mb-3">Mengapa Memilih Kami?</h2>
+                            <ul class="space-y-3 text-gray-700 list-disc list-inside">
+                                <li>Koleksi buku baru dan langka yang beragam.</li>
+                                <li>Harga kompetitif dengan promo bulanan.</li>
+                                <li>Layanan pelanggan yang ramah dan berpengetahuan luas.</li>
+                                <li>Lingkungan toko yang nyaman dan inspiratif.</li>
+                            </ul>
+                        </div>
+
+                        <!-- Kontak dan Lokasi -->
+                        <div class="bg-white rounded-xl shadow-2xl p-8 border-r-4 border-neutral-800">
+                            <h2 class="text-3xl font-bold text-gray-900 mb-6">Hubungi Kami</h2>
+                            
+                            <div class="space-y-6">
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-800">Alamat Fisik</p>
+                                    <p class="text-gray-600">Jl. Literasi No. 42, Blok B, Kota Jakarta, 10110</p>
+                                    <a href="https://maps.app.goo.gl/samplelocation" target="_blank" class="text-stone-700 hover:text-stone-900 text-sm font-medium mt-1 inline-block transition duration-300">
+                                        Lihat di Google Maps &rarr;
+                                    </a>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-800">Email</p>
+                                    <a href="mailto:info@hanansbookstore.com" class="text-stone-700 hover:underline">info@hanansbookstore.com</a>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-800">Telepon / WhatsApp</p>
+                                    <a href="tel:+6281234567890" class="text-stone-700 hover:underline">+62 812-3456-7890</a>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-lg font-semibold text-gray-800">Jam Operasional</p>
+                                    <p class="text-gray-600">Senin - Sabtu: 09.00 - 20.00 WIB</p>
+                                    <p class="text-gray-600">Minggu: Tutup</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            `;
+        }
+
+        // --- Fungsi Utama untuk Merender Aplikasi ---
+        function renderApp() {
+            let content;
+            switch (state.currentPage) {
+                case 'home':
+                    content = renderHome();
+                    break;
+                case 'catalog':
+                    content = renderCatalog();
+                    break;
+                case 'about':
+                    content = renderAbout();
+                    break;
+                default:
+                    content = '<div>Halaman tidak ditemukan.</div>';
+            }
+
+            // Gabungkan Header, Konten, dan Footer
+            appElement.innerHTML = `
+                ${renderHeader()}
+                ${content}
+                <footer class="bg-gray-800 text-white p-4 text-center text-sm mt-10">
+                    &copy; 2025 Hanans Book. Semua hak dilindungi. | Dibuat dengan <span class="text-red-500">&hearts;</span>
+                </footer>
+            `;
+
+            // Setelah konten dimuat, tambahkan listener untuk menu mobile
+            const menuToggle = document.getElementById('menu-toggle');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            if (menuToggle && mobileMenu) {
+                menuToggle.onclick = () => {
+                    mobileMenu.classList.toggle('hidden');
+                };
+            }
+        }
+
+        // Mulai aplikasi saat DOM siap
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+        });
+    </script>
+</body>
+</html>
+
